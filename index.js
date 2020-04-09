@@ -42,7 +42,7 @@ fs.readdir(pathToFiles, (err, files) => {
 
       const arrayOfSums = getAllSums(allWc)
 
-      checkAllSumsToEquality(arrayOfSums, finalPrice)
+      checkAllSumsToEquality(arrayOfSums, finalPrice, filenmae)
 
       const arrayOfNames = getAllNames(allW7)
 
@@ -63,7 +63,7 @@ fs.readdir(pathToFiles, (err, files) => {
   })
 })
 
-function checkAllSumsToEquality (array, sum) {
+function checkAllSumsToEquality (array, sum, name) {
   let copiedSum = sum
 
   array.forEach(el => {
@@ -71,7 +71,7 @@ function checkAllSumsToEquality (array, sum) {
   })
 
   if (copiedSum) {
-    console.error('Итоговая сумма не равна сумме всех товаров')
+    console.error(`Итоговая сумма не равна сумме всех товаров в файле ${name}`)
     process.exit(1)
   }
 }
