@@ -1,49 +1,65 @@
 const fs = require('fs')
+const path = require('path')
 const jsdom = require('jsdom')
 const { JSDOM } = jsdom
 const parseToFloat = require('./parseFieldToFloat')
 
 const finalJSON = {}
 
-fs.readFile('C:/Users/sashe/Downloads/Telegram Desktop/903-0543-00001-спец-ия.html', 'utf-8', (err, data) => {
+const pathToFiles = 'C:/Users/sashe/Downloads/Telegram Desktop/'
+
+fs.readdir(pathToFiles, (err, files) => {
   if (err) {
     console.error(err)
     process.exit(1)
   }
 
-  const dom = new JSDOM(data)
-  const { window: { document } } = dom
+  const validFiles = files.filter(el => el.endsWith('.html'))
 
-  const allW10 = document.querySelectorAll('.w10')
-  const finalSumDiv = allW10[allW10.length - 1]
-  const finalSumText = getText(finalSumDiv)
-  const finalPrice = parseToFloat(finalSumText)
+  validFiles.forEach(el => {
+    fs.readFile(`${pathToFiles}${el}`, 'utf-8', (err, data) => {
+      const fileName = path.basename(`${pathToFiles}${el}`, '.html')
 
-  const allW7 = [...document.querySelectorAll('.w7')]
-  const allWc = [...document.querySelectorAll('.wc')]
+      if (err) {
+        console.error(err)
+        process.exit(1)
+      }
 
-  allW7.shift()
-  allW7.shift()
-  allWc.shift()
+      const dom = new JSDOM(data)
+      const { window: { document } } = dom
 
-  const arrayOfSums = getAllSums(allWc)
+      const allW10 = document.querySelectorAll('.w10')
+      const finalSumDiv = allW10[allW10.length - 1]
+      const finalSumText = getText(finalSumDiv)
+      const finalPrice = parseToFloat(finalSumText)
 
-  checkAllSumsToEquality(arrayOfSums, finalPrice)
+      const allW7 = [...document.querySelectorAll('.w7')]
+      const allWc = [...document.querySelectorAll('.wc')]
 
-  const arrayOfNames = getAllNames(allW7)
+      allW7.shift()
+      allW7.shift()
+      allWc.shift()
 
-  arrayOfNames.forEach((el, index) => {
-    const name = `${index + 1} ${el}`
-    const persentages = (arrayOfSums[index] / finalPrice * 100).toFixed(2)
+      const arrayOfSums = getAllSums(allWc)
 
-    finalJSON[name] = persentages
-  })
+      checkAllSumsToEquality(arrayOfSums, finalPrice)
 
-  fs.writeFile('index.json', JSON.stringify(finalJSON), (err) => {
-    if (err) {
-      console.error(err)
-      process.exit(1)
-    }
+      const arrayOfNames = getAllNames(allW7)
+
+      arrayOfNames.forEach((el, index) => {
+        const name = `${index + 1} ${el}`
+        const persentages = (arrayOfSums[index] / finalPrice * 100).toFixed(2)
+
+        finalJSON[name] = persentages
+      })
+
+      fs.writeFile(`${pathToFiles}${fileName}.json`, JSON.stringify(finalJSON), (err) => {
+        if (err) {
+          console.error(err)
+          process.exit(1)
+        }
+      })
+    })
   })
 })
 
