@@ -19,14 +19,16 @@ fs.readdir(pathToFiles, (err, files) => {
     xlsx.fromFileAsync(`${pathToFiles}/${el}`)
       .then(data => {
         const sheet = data.sheet(0)
-        const dataArray = sheet.usedRange().value()
+        const RawDataArray = sheet.usedRange().value()
+
+        const dataArray = RawDataArray.filter(el => !el.every(element => typeof element === "undefined"))
 
         dataArray.shift()
 
         const finalSum = calcFinalSum(dataArray)
 
         dataArray.forEach((el, index) => {
-          const filedName = el[2].replace('"', '\'')
+          const filedName = el[2]
           const pers = (el.slice(-1).pop() / finalSum * 100).toFixed(2)
 
           finalJSON[`${index + 1} ${filedName}`] = pers
