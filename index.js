@@ -1,12 +1,8 @@
 const fs = require('fs')
 const path = require('path')
-const jsdom = require('jsdom')
-const { JSDOM } = jsdom
-const parseToFloat = require('./parseFieldToFloat')
+const xlsx = require('xlsx-populate')
 
-const finalJSON = {}
-
-const pathToFiles = 'C:/Users/sashe/Downloads/Telegram Desktop/'
+const pathToFiles = 'C:/Users/sashe/Desktop/excel'
 
 fs.readdir(pathToFiles, (err, files) => {
   if (err) {
@@ -14,96 +10,48 @@ fs.readdir(pathToFiles, (err, files) => {
     process.exit(1)
   }
 
-  const validFiles = files.filter(el => el.endsWith('.html'))
+  const validFiles = files.filter(el => el.endsWith('.xlsx'))
 
   validFiles.forEach(el => {
-    fs.readFile(`${pathToFiles}${el}`, 'utf-8', (err, data) => {
-      const fileName = path.basename(`${pathToFiles}${el}`, '.html')
+    const fileName = path.basename(el, '.xlsx')
+    const finalJSON = {}
 
-      if (err) {
-        console.error(err)
+    xlsx.fromFileAsync(`${pathToFiles}/${el}`)
+      .then(data => {
+        const sheet = data.sheet(0)
+        const dataArray = sheet.usedRange().value()
+
+        dataArray.shift()
+
+        const finalSum = calcFinalSum(dataArray)
+
+        dataArray.forEach((el, index) => {
+          const filedName = el[2].replace('"', '\'')
+          const pers = (el.slice(-1).pop() / finalSum * 100).toFixed(2)
+
+          finalJSON[`${index + 1} ${filedName}`] = pers
+        })
+
+        fs.writeFile(`${pathToFiles}/${fileName}.json`, JSON.stringify(finalJSON), (err) => {
+          if (err) {
+            console.log(err)
+            process.exit(1)
+          }
+        })
+      })
+      .catch(err => {
+        console.log(`${fileName}: ${err}`)
         process.exit(1)
-      }
-
-      const dom = new JSDOM(data)
-      const { window: { document } } = dom
-
-      const allW10 = document.querySelectorAll('.w10')
-      const finalSumDiv = allW10[allW10.length - 1]
-      const finalSumText = getText(finalSumDiv)
-      const finalPrice = parseToFloat(finalSumText)
-
-      const allW7 = [...document.querySelectorAll('.w7')]
-      const allWc = [...document.querySelectorAll('.wc')]
-
-      allW7.shift()
-      allW7.shift()
-      allWc.shift()
-
-      const arrayOfSums = getAllSums(allWc)
-
-      checkAllSumsToEquality(arrayOfSums, finalPrice, filenmae)
-
-      const arrayOfNames = getAllNames(allW7)
-
-      arrayOfNames.forEach((el, index) => {
-        const name = `${index + 1} ${el}`
-        const persentages = (arrayOfSums[index] / finalPrice * 100).toFixed(2)
-
-        finalJSON[name] = persentages
       })
-
-      fs.writeFile(`${pathToFiles}${fileName}.json`, JSON.stringify(finalJSON), (err) => {
-        if (err) {
-          console.error(err)
-          process.exit(1)
-        }
-      })
-    })
   })
 })
 
-function checkAllSumsToEquality (array, sum, name) {
-  let copiedSum = sum
+function calcFinalSum (data) {
+  let sum = 0
 
-  array.forEach(el => {
-    copiedSum -= el
+  data.forEach(el => {
+    sum += el.slice(-1).pop()
   })
 
-  if (copiedSum) {
-    console.error(`Итоговая сумма не равна сумме всех товаров в файле ${name}`)
-    process.exit(1)
-  }
-}
-
-function getAllNames (divs) {
-  const finalArray = []
-
-  divs.forEach((el) => {
-    const text = getText(el)
-    finalArray.push(text)
-  })
-
-  return finalArray
-}
-
-function getAllSums (divs) {
-  const finalArray = []
-
-  divs.forEach((el) => {
-    const text = getText(el)
-    finalArray.push(parseToFloat(text))
-  })
-
-  return finalArray
-}
-
-function getText (div) {
-  let finalString = ''
-
-  div.childNodes.forEach((el) => {
-    finalString += el.textContent
-  })
-
-  return finalString
+  return sum
 }
